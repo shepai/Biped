@@ -55,7 +55,7 @@ class Genotype:
             while choice==seq[n1]:  choice=random.choice(self.options) #get unique
             #reform in order
             seq[n1]=choice
-            new[n]=seq[n1].copy()
+            new[n]=seq.copy()
         return new
     def setNew(self,geno): #set the new genotype as the parameter
         self.genotype=geno.copy()
@@ -64,7 +64,7 @@ def readGyro():
     return sensor.get_accel_data() #read the gyroscope
 def readAcc():
     d=sensor.get_accel_data() #read the accelerometer
-    return d["x"],d["y"],d["z"]
+    return float(d["x"]),float(d["y"]),float(d["z"])
 def withinBoundary(num,value,minus,plus): #whether or not a number is withi a value bounds
     if num>=value-minus and num<=value+plus:
         return True
@@ -74,28 +74,28 @@ def Set(positions):
         servos[i].servo.angle=ang
 def isReady():
     #check accelerometer values are within boundaries
-    x,y,z=readGyro()#get gyroscope values
-    if withinBoundary(x,9.5,0.5,0.5) and withinBoundary(y,0.3,0.3,0.5):
+    x,y,z=readAcc()#get gyroscope values
+    if withinBoundary(x,-9.5,0.5,0.5) and withinBoundary(y,0.2,0.8,1):
         return True
     return False
-def fitness(start):
+def fitness(startDist):
     #get the fitness of the bots current position
     distance=readDist()
     x,y,z=readAcc()
     #get the distance score
     #get the gyro score
     #combine scores
-    pentalty=0
-    if not withinBoundary(x,9.5,0.5,0.5):
-        penalty=max(9.5,x)-min(9.5,x)
-    if not withinBoundary(y,0.3,0.3,0.5):
-        penalty=max(0.3,x)-min(0.3,x)
-    if withinBoundary(x,9.5,2,2) and withinBoundary(y,0.3,2,2): #if in a near position
+    penalty=0
+    if not withinBoundary(x,-9.5,0.5,0.5):
+        penalty=abs(max(-9.5,x)-min(-9.5,x))
+    if not withinBoundary(y,0.2,0.8,1):
+        penalty=abs(max(0.2,x)-min(0.2,x))
+    if withinBoundary(x,-9.5,2,2) and withinBoundary(y,0.2,2,2): #if in a near position
         if startDist-distance>0 and startDist-distance+penalty>0:
             return startDist-distance+penalty
     return 0
 def readDist(): #get the distance of the bot
-    dist=sonar.read("mm",samples)
+    dist=sonar.read("mm",5)
     return dist
 ##################
 #set up everything else
@@ -122,7 +122,7 @@ for gen in range(Generations):
     Set(startPositions)
     startDist=readDist() #get sensor reading
     while isReady()==False: pass #wait for ready 
-    lcd.lcd_display_string("Generation "+str(gen+1), 3)
+    #lcd.lcd_display_string("Generation "+str(gen+1), 3)
     current=gt.mutate()
     fit=fitness(startDist)
     fittnesses.append(fit)
