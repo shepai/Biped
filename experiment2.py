@@ -3,31 +3,28 @@ Genetic algorithm experiment
 By Dexter R C Shepherd,aged 19
 """
 #https://learn.adafruit.com/ultrasonic-sonar-distance-sensors/python-circuitpython
-import lcddriver
+#import lcddriver
 import random
 from time import *
-import board
-import busio
-import adafruit_mpu6050
 from adafruit_servokit import ServoKit
-import adafruit_hcsr04
-
+from mpu6050 import mpu6050 as MPU
+from Blueton_Echo import Echo
 
 #set up outputs
 kit = ServoKit(channels=16)
-lcd = lcddriver.lcd()
+#lcd = lcddriver.lcd()
 
 #set up sensors
-i2c = busio.I2C(board.SCL, board.SDA)
-mpu = adafruit_mpu6050.MPU6050(i2c)
-sonar = adafruit_hcsr04.HCSR04(trigger_pin=board.D5, echo_pin=board.D6)
+mpu = MPU(0x68)
+sonar=Echo(16,12,315) #trigger pin, echo pin, speed
 
+"""
 lcd.lcd_display_string("GA experiment 2", 1)
 lcd.lcd_display_string("By Dexter Shepherd", 2)
 lcd.lcd_display_string("", 3)
 lcd.lcd_display_string("shepai.github.io", 4)
 sleep(2)
-
+"""
 ##################
 #Define relevant classes and functions
 
@@ -64,9 +61,10 @@ class Genotype:
         self.genotype=geno.copy()
         
 def readGyro():
-    pass #read the gyroscope
+    return sensor.get_accel_data() #read the gyroscope
 def readAcc():
-    pass #read the accelerometer
+    d=sensor.get_accel_data() #read the accelerometer
+    return d["x"],d["y"],d["z"]
 def withinBoundary(num,value,minus,plus): #whether or not a number is withi a value bounds
     if num>=value-minus and num<=value+plus:
         return True
@@ -76,29 +74,28 @@ def Set(positions):
         servos[i].servo.angle=ang
 def isReady():
     #check accelerometer values are within boundaries
-    ax=readGyro()#get gyroscope values
-    if withinBoundary(ax[0],10,5,5):
+    x,y,z=readGyro()#get gyroscope values
+    if withinBoundary(x,9.5,0.5,0.5) and withinBoundary(y,0.3,0.3,0.5):
         return True
     return False
-def fitness():
+def fitness(start):
     #get the fitness of the bots current position
     distance=readDist()
-    ax=readGyro()
+    x,y,z=readAcc()
     #get the distance score
     #get the gyro score
-    #get the accelerometer score
     #combine scores
-    if isReady()==False:
-        return 0
-    return 1
+    pentalty=0
+    if not withinBoundary(x,9.5,0.5,0.5):
+        penalty=max(9.5,x)-min(9.5,x)
+    if not withinBoundary(y,0.3,0.3,0.5):
+        penalty=max(0.3,x)-min(0.3,x)
+    if withinBoundary(x,9.5,2,2) and withinBoundary(y,0.3,2,2): #if in a near position
+        if startDist-distance>0 and startDist-distance+penalty>0:
+            return startDist-distance+penalty
+    return 0
 def readDist(): #get the distance of the bot
-    dist=0
-    while True:
-        try:
-            dist=sonar.distance
-            break
-        except RuntimeError:
-            pass
+    dist=sonar.read("mm",samples)
     return dist
 ##################
 #set up everything else
@@ -112,20 +109,22 @@ gt=Genotype(size=30,mutations=3,no_of_inputs=8,options=[0,0,20,-20,0,0,0,0])
 fittnesses=[]
 ##################
 #Begin algorithm
+"""
 lcd.lcd_display_string("[][][][]    [][][][]", 1)
 lcd.lcd_display_string("[][][][]    [][][][]", 2)
 lcd.lcd_display_string("", 3)
 lcd.lcd_display_string("shepai.github.io", 4)
-
+"""
 Generations=50
 best=0
 for gen in range(Generations):
-    lcd.lcd_display_string("", 3)
+    #lcd.lcd_display_string("", 3)
     Set(startPositions)
+    startDist=readDist() #get sensor reading
     while isReady()==False: pass #wait for ready 
     lcd.lcd_display_string("Generation "+str(gen+1), 3)
     current=gt.mutate()
-    fit=fitness()
+    fit=fitness(startDist)
     fittnesses.append(fit)
     if fit>best:
         gt.setNew(current)
@@ -137,3 +136,4 @@ file=open("dataSheet ","w")
 file.write(str(gt.genotype))
 file.write(str(fittnesses))
 file.close()
+sonar.stop()
