@@ -38,24 +38,23 @@ class servoMotor:
         if current+angle>=self.min and current+angle<=self.max:
             self.servo.angle=current+angle
 class Genotype:
-    def __init__(self,size=20,mutations=1,no_of_inputs=1,options=[]):
+    def __init__(self,size=20,no_of_inputs=1,options=[]):
         self.size=size
-        self.mutationRate=mutations
         self.no_of_inputs=no_of_inputs
         self.options=options
         self.genotype=[[random.choice(options) for i in range(no_of_inputs)] for j in range(size)]
-    def mutate(self): #get a mutated genotype
+    def mutate(self,rate=0.2): #get a mutated genotype
         new=self.genotype.copy()
-        for i in range(self.mutationRate): #loop through mutation rate times
+        for i in range(self.size): #loop through mutation rate times
             #get random positions
-            n=random.randint(0,self.size)
-            seq=self.genotype[n]
-            n1=random.randint(0,len(seq))
-            choice=random.choice(self.options)
-            while choice==seq[n1]:  choice=random.choice(self.options) #get unique
-            #reform in order
-            seq[n1]=choice
-            new[n]=seq.copy()
+            if random.random()<=rate: #give mutation rate chance
+                seq=new[i]
+                n=random.randint(0,len(seq))
+                choice=random.choice(self.options)
+                while choice==seq[n]:  choice=random.choice(self.options) #get unique
+                #reform in order
+                seq[n]=choice
+                new[i]=seq.copy()
         return new
     def setNew(self,geno): #set the new genotype as the parameter
         self.genotype=geno.copy()
