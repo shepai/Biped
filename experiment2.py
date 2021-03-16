@@ -1,6 +1,15 @@
 """
 Genetic algorithm experiment
 By Dexter R C Shepherd,aged 19
+
+This uses a genetic algorithm to move a biped chassis of selected size. It should optimize its walk by using
+an mpu6050 sensor and ultrasonic range finder.
+
+PINOUT:
+*trigger pin 16
+*echo pin 12
+*buzzer 23
+
 """
 #https://learn.adafruit.com/ultrasonic-sonar-distance-sensors/python-circuitpython
 #import lcddriver
@@ -9,10 +18,15 @@ from time import *
 from adafruit_servokit import ServoKit
 from mpu6050 import mpu6050 as MPU
 from Blueton_Echo import Echo
+import RPi.GPIO as GPIO
+
+GPIO.setmode(GPIO.BCM)
+NumServos=8
 
 #set up outputs
 kit = ServoKit(channels=16)
 #lcd = lcddriver.lcd()
+GPIO.setup(23,GPIO.OUT) #buzzer on 23
 
 #set up sensors
 mpu = MPU(0x68)
@@ -100,10 +114,10 @@ def readDist(): #get the distance of the bot
 #set up everything else
 servos=[]
 startPositions=[]
-for i in range(8): #create all servos and their parameters
+for i in range(NumServos): #create all servos and their parameters
     servos.append(servoMotor(kit.servo[i],0,180))
 
-gt=Genotype(size=30,mutations=3,no_of_inputs=8,options=[0,0,20,-20,0,0,0,0])
+gt=Genotype(size=30,mutations=3,no_of_inputs=NumServos,options=[0,0,20,-20,0,0,0,0])
 
 fittnesses=[]
 ##################
@@ -120,14 +134,16 @@ for gen in range(Generations):
     #lcd.lcd_display_string("", 3)
     Set(startPositions)
     startDist=readDist() #get sensor reading
-    while isReady()==False: pass #wait for ready 
+    while isReady()==False: GPIO.output(buzzer,GPIO.HIGH) #wait for ready
+    GPIO.output(buzzer,GPIO.LOW)
     #lcd.lcd_display_string("Generation "+str(gen+1), 3)
-    current=gt.mutate()
+    current=gt.mutate(rate=0.2)
     fit=fitness(startDist)
     fittnesses.append(fit)
     if fit>best:
         gt.setNew(current)
         best=fit
+        
 #################
 #Save information
 
