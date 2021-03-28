@@ -43,14 +43,17 @@ sleep(2)
 #Define relevant classes and functions
 
 class servoMotor:
-    def __init__(self,servoObj,Min,Max):
+    def __init__(self,servoObj,start,Min,Max):
         self.servo=servoObj
         self.min=Min
         self.max=Max
-    def move(angle): #only move within a set space to avoid damage
+        self.start=start
+    def move(self,angle): #only move within a set space to avoid damage
         current=self.servo.angle
         if current+angle>=self.min and current+angle<=self.max:
             self.servo.angle=current+angle
+    def startPos(self):
+        self.servo.angle=start
 class Genotype:
     def __init__(self,size=20,no_of_inputs=1,options=[]):
         self.size=size
@@ -82,9 +85,7 @@ def withinBoundary(num,value,minus,plus): #whether or not a number is withi a va
     if num>=value-minus and num<=value+plus:
         return True
     return False
-def Set(positions):
-    for i,ang in enumerate(positions): #loop through the positions and find
-        servos[i].servo.angle=ang
+
 def isReady():
     #check accelerometer values are within boundaries
     x,y,z=readAcc()#get gyroscope values
@@ -113,9 +114,15 @@ def readDist(): #get the distance of the bot
 ##################
 #set up everything else
 servos=[]
-startPositions=[]
-for i in range(NumServos): #create all servos and their parameters
-    servos.append(servoMotor(kit.servo[i],0,180))
+servos.append(servoMotor(kit.servo[0],90,60,180))
+servos.append(servoMotor(kit.servo[1],20,0,180))
+servos.append(servoMotor(kit.servo[2],100,0,180))
+servos.append(servoMotor(kit.servo[3],130,0,180))
+servos.append(servoMotor(kit.servo[4],90,0,130))
+servos.append(servoMotor(kit.servo[5],100,0,180))
+servos.append(servoMotor(kit.servo[6],180,0,180))
+servos.append(servoMotor(kit.servo[7],90,0,180))
+
 
 gt=Genotype(size=30,mutations=3,no_of_inputs=NumServos,options=[0,0,20,-20,0,0,0,0])
 
@@ -132,7 +139,8 @@ Generations=50
 best=0
 for gen in range(Generations):
     #lcd.lcd_display_string("", 3)
-    Set(startPositions)
+    for i in servos:
+        i.startPos()
     startDist=readDist() #get sensor reading
     while isReady()==False: GPIO.output(buzzer,GPIO.HIGH) #wait for ready
     GPIO.output(buzzer,GPIO.LOW)
