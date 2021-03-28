@@ -124,7 +124,7 @@ servos.append(servoMotor(kit.servo[6],180,0,180))
 servos.append(servoMotor(kit.servo[7],90,0,180))
 
 
-gt=Genotype(size=30,mutations=3,no_of_inputs=NumServos,options=[0,0,20,-20,0,0,0,0])
+
 
 fittnesses=[]
 ##################
@@ -136,7 +136,11 @@ lcd.lcd_display_string("", 3)
 lcd.lcd_display_string("shepai.github.io", 4)
 """
 Generations=50
-best=0
+top=0
+gt=[]
+for i in range(20):
+    gt.append(Genotype(size=30,mutations=3,no_of_inputs=NumServos,options=[0,0,20,-20,0,0,0,0]))
+    
 for gen in range(Generations):
     #lcd.lcd_display_string("", 3)
     for i in servos:
@@ -144,19 +148,34 @@ for gen in range(Generations):
     while isReady()==False: GPIO.output(buzzer,GPIO.HIGH) #wait for ready
     GPIO.output(buzzer,GPIO.LOW)
     startDist=readDist() #get sensor reading
-    #lcd.lcd_display_string("Generation "+str(gen+1), 3)
-    current=gt.mutate(rate=0.2)
-    fit=fitness(startDist)
+    n1=random.randint(0,29)
+    current1=gt[n1].mutate(rate=0.2)
+    fit1=fitness(startDist)
+    
+    for i in servos:
+        i.startPos()
+    while isReady()==False: GPIO.output(buzzer,GPIO.HIGH) #wait for ready
+    GPIO.output(buzzer,GPIO.LOW)
+    startDist=readDist() #get sensor reading
+    n2=random.randint(0,29)
+    curren2=gt[n2].mutate(rate=0.2)
+    fit2=fitness(startDist)
+    
     fittnesses.append(fit)
-    if fit>best:
-        gt.setNew(current)
-        best=fit
+    t=max(t1,t2)
+    fitnesses.append(t)
+    if t>top:
+        top=t
+    if fit1>fit2:
+        gt[n2]=gt[n1].copy()
+    else:
+        gt[n1]=gt[n2].copy()
         
 #################
 #Save information
 
-file=open("dataSheet ","w")
-file.write(str(gt.genotype))
+file=open("dataSheet Microbal","w")
+file.write(str(t))
 file.write(str(fittnesses))
 file.close()
 sonar.stop()
