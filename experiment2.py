@@ -14,7 +14,7 @@ PINOUT:
 #https://learn.adafruit.com/ultrasonic-sonar-distance-sensors/python-circuitpython
 #import lcddriver
 import random
-from time import *
+import time
 from adafruit_servokit import ServoKit
 from mpu6050 import mpu6050 as MPU
 from Bluetin_Echo import Echo
@@ -22,6 +22,8 @@ import RPi.GPIO as GPIO
 
 GPIO.setmode(GPIO.BCM)
 NumServos=8
+GPIO.setwarnings(False)
+buzzer=23
 
 #set up outputs
 kit = ServoKit(channels=16)
@@ -53,7 +55,7 @@ class servoMotor:
         if current+angle>=self.min and current+angle<=self.max:
             self.servo.angle=current+angle
     def startPos(self):
-        self.servo.angle=start
+        self.servo.angle=self.start
 class Genotype:
     def __init__(self,size=20,no_of_inputs=1,options=[]):
         self.size=size
@@ -66,7 +68,7 @@ class Genotype:
             #get random positions
             if random.random()<=rate: #give mutation rate chance
                 seq=new[i]
-                n=random.randint(0,len(seq))
+                n=random.randint(0,len(seq)-1)
                 choice=random.choice(self.options)
                 while choice==seq[n]:  choice=random.choice(self.options) #get unique
                 #reform in order
@@ -115,7 +117,7 @@ def readDist(): #get the distance of the bot
 #set up everything else
 servos=[]
 servos.append(servoMotor(kit.servo[0],90,60,180))
-servos.append(servoMotor(kit.servo[1],20,0,180))
+servos.append(servoMotor(kit.servo[1],0,0,180))
 servos.append(servoMotor(kit.servo[2],100,0,180))
 servos.append(servoMotor(kit.servo[3],130,0,180))
 servos.append(servoMotor(kit.servo[4],90,0,130))
@@ -124,7 +126,7 @@ servos.append(servoMotor(kit.servo[6],180,0,180))
 servos.append(servoMotor(kit.servo[7],90,0,180))
 
 
-gt=Genotype(size=30,mutations=3,no_of_inputs=NumServos,options=[0,0,20,-20,0,0,0,0])
+gt=Genotype(size=30,no_of_inputs=NumServos,options=[0,0,20,-20,0,0,0,0])
 
 fittnesses=[]
 ##################
@@ -146,6 +148,11 @@ for gen in range(Generations):
     startDist=readDist() #get sensor reading
     #lcd.lcd_display_string("Generation "+str(gen+1), 3)
     current=gt.mutate(rate=0.2)
+    #perform genotype
+    for task in current:
+        for i,ang in enumerate(task):
+            servos[i].move(ang)
+        time.sleep(0.5)
     fit=fitness(startDist)
     fittnesses.append(fit)
     if fit>best:
