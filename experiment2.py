@@ -17,7 +17,7 @@ import random
 from time import *
 from adafruit_servokit import ServoKit
 from mpu6050 import mpu6050 as MPU
-from Blueton_Echo import Echo
+from Bluetin_Echo import Echo
 import RPi.GPIO as GPIO
 
 GPIO.setmode(GPIO.BCM)
@@ -29,7 +29,7 @@ kit = ServoKit(channels=16)
 GPIO.setup(23,GPIO.OUT) #buzzer on 23
 
 #set up sensors
-mpu = MPU(0x68)
+sensor = MPU(0x68)
 sonar=Echo(16,12,315) #trigger pin, echo pin, speed
 
 """
