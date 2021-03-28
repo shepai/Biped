@@ -14,14 +14,16 @@ PINOUT:
 #https://learn.adafruit.com/ultrasonic-sonar-distance-sensors/python-circuitpython
 #import lcddriver
 import random
-from time import *
+import time
 from adafruit_servokit import ServoKit
 from mpu6050 import mpu6050 as MPU
-from Blueton_Echo import Echo
+from Bluetin_Echo import Echo
 import RPi.GPIO as GPIO
 
 GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
 NumServos=8
+buzzer=23
 
 #set up outputs
 kit = ServoKit(channels=16)
@@ -53,7 +55,7 @@ class servoMotor:
         if current+angle>=self.min and current+angle<=self.max:
             self.servo.angle=current+angle
     def startPos(self):
-        self.servo.angle=start
+        self.servo.angle=self.start
 class Genotype:
     def __init__(self,size=20,no_of_inputs=1,options=[]):
         self.size=size
@@ -66,7 +68,7 @@ class Genotype:
             #get random positions
             if random.random()<=rate: #give mutation rate chance
                 seq=new[i]
-                n=random.randint(0,len(seq))
+                n=random.randint(0,len(seq)-1)
                 choice=random.choice(self.options)
                 while choice==seq[n]:  choice=random.choice(self.options) #get unique
                 #reform in order
@@ -115,7 +117,7 @@ def readDist(): #get the distance of the bot
 #set up everything else
 servos=[]
 servos.append(servoMotor(kit.servo[0],90,60,180))
-servos.append(servoMotor(kit.servo[1],20,0,180))
+servos.append(servoMotor(kit.servo[1],0,0,180))
 servos.append(servoMotor(kit.servo[2],100,0,180))
 servos.append(servoMotor(kit.servo[3],130,0,180))
 servos.append(servoMotor(kit.servo[4],90,0,130))
@@ -139,7 +141,7 @@ Generations=50
 top=0
 gt=[]
 for i in range(20):
-    gt.append(Genotype(size=30,mutations=3,no_of_inputs=NumServos,options=[0,0,20,-20,0,0,0,0]))
+    gt.append(Genotype(size=30,no_of_inputs=NumServos,options=[0,0,20,-20,0,0,0,0]))
     
 for gen in range(Generations):
     #lcd.lcd_display_string("", 3)
@@ -150,6 +152,10 @@ for gen in range(Generations):
     startDist=readDist() #get sensor reading
     n1=random.randint(0,29)
     current1=gt[n1].mutate(rate=0.2)
+    for task in current1:
+        for i,ang in enumerate(task):
+            servos[i].move(ang)
+        time.sleep(0.5)
     fit1=fitness(startDist)
     
     for i in servos:
@@ -159,6 +165,10 @@ for gen in range(Generations):
     startDist=readDist() #get sensor reading
     n2=random.randint(0,29)
     curren2=gt[n2].mutate(rate=0.2)
+    for task in current2:
+        for i,ang in enumerate(task):
+            servos[i].move(ang)
+        time.sleep(0.5)
     fit2=fitness(startDist)
     
     fittnesses.append(fit)
