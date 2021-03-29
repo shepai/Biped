@@ -168,7 +168,7 @@ for gen in range(Generations):
     if fit>best:
         gt.setNew(current)
         best=fit
-    elif bestnBatch>best: #store where it was good up to the point
+    elif bestInBatch>best: #store where it was good up to the point
         gt.setNew(current,index=topInd)
         
 #################
