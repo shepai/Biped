@@ -76,7 +76,7 @@ class Genotype:
                 new[i]=seq.copy()
         return new
     def setNew(self,geno,index=-1): #set the new genotype as the parameter
-        if ind>=0:
+        if index>=0:
             self.genotype[0:index]=geno[0:index]
         else:
             self.genotype=geno.copy()
