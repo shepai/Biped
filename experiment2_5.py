@@ -21,7 +21,7 @@ from Bluetin_Echo import Echo
 import RPi.GPIO as GPIO
 
 GPIO.setmode(GPIO.BCM)
-NumServos=8
+NumServos=4
 GPIO.setwarnings(False)
 buzzer=23
 
@@ -94,7 +94,7 @@ def withinBoundary(num,value,minus,plus): #whether or not a number is withi a va
 def isReady():
     #check accelerometer values are within boundaries
     x,y,z=readAcc()#get gyroscope values
-    if withinBoundary(x,-9.5,0.5,0.5) and withinBoundary(y,0.2,0.8,1):
+    if withinBoundary(x,-9.5,2,2) and withinBoundary(y,0.2,2,2):
         return True
     return False
 def fitness(startDist):
@@ -119,17 +119,13 @@ def readDist(): #get the distance of the bot
 ##################
 #set up everything else
 servos=[]
-servos.append(servoMotor(kit.servo[0],90,60,180))
-servos.append(servoMotor(kit.servo[1],0,0,180))
+servos.append(servoMotor(kit.servo[0],90,40,130))
+servos.append(servoMotor(kit.servo[1],130,20,10))
 servos.append(servoMotor(kit.servo[2],100,0,180))
-servos.append(servoMotor(kit.servo[3],130,0,180))
-servos.append(servoMotor(kit.servo[4],90,0,130))
-servos.append(servoMotor(kit.servo[5],100,0,180))
-servos.append(servoMotor(kit.servo[6],180,0,180))
-servos.append(servoMotor(kit.servo[7],90,0,180))
+servos.append(servoMotor(kit.servo[3],30,0,80))
 
 
-gt=Genotype(size=30,no_of_inputs=NumServos,options=[0,0,20,-20,0,0,0,0])
+gt=Genotype(size=15,no_of_inputs=NumServos,options=[0,0,30,-30,0])
 
 fittnesses=[]
 ##################
@@ -148,6 +144,7 @@ for gen in range(Generations):
         i.startPos()
     while isReady()==False: GPIO.output(buzzer,GPIO.HIGH) #wait for ready
     GPIO.output(buzzer,GPIO.LOW)
+    time.sleep(2)
     startDist=readDist() #get sensor reading
     #lcd.lcd_display_string("Generation "+str(gen+1), 3)
     current=gt.mutate(rate=0.2)
