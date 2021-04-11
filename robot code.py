@@ -25,7 +25,22 @@ from adafruit_servokit import ServoKit
 from mpu6050 import mpu6050 as MPU
 from Bluetin_Echo import Echo
 import RPi.GPIO as GPIO
-
+import time
+"""
+Hardware classes
+"""
+class servoMotor:
+    def __init__(self,servoObj,start,Min,Max):
+        self.servo=servoObj
+        self.min=Min
+        self.max=Max
+        self.start=start
+    def move(self,angle): #only move within a set space to avoid damage
+        current=self.servo.angle
+        if current+angle>=self.min and current+angle<=self.max:
+            self.servo.angle=current+angle
+    def startPos(self):
+        self.servo.angle=self.start
 
 class Agent:
     def __init__(self, num_input, num_hiddenLayer, num_output):
@@ -55,7 +70,6 @@ class Agent:
         
 
     def get_action(self, x):
-        #print(self.forward(x))
         items=list(self.forward(x)[0]) #get predictions
         arr=[]
         for i in items:
@@ -71,7 +85,7 @@ class Agent:
 """
 define needed variables
 """
-num_obs = 5 # depends on your environment
+num_obs = 7 # depends on your environment
 num_actions = 4 # depends on your environment
 epochs, pop_size, mutation_std = 1000, 15, 0.01 #define data for training
 #create out agent
@@ -79,8 +93,9 @@ agent = Agent(num_obs, 5,  num_actions)
 
 # Create our gene population
 gene_pop = []
+
 for i in range(20):
-  gene_pop.append(np.random.normal(0, 0.1, (pop_size, agent.num_genes)))#create
+  gene_pop.append(np.random.normal(0, 0.1, (agent.num_genes)))#create
 
 
 GPIO.setmode(GPIO.BCM)
@@ -103,24 +118,12 @@ servos.append(servoMotor(kit.servo[1],130,20,10))
 servos.append(servoMotor(kit.servo[2],100,0,180))
 servos.append(servoMotor(kit.servo[3],30,0,80))
 
-"""
-Hardware classes
-"""
-class servoMotor:
-    def __init__(self,servoObj,start,Min,Max):
-        self.servo=servoObj
-        self.min=Min
-        self.max=Max
-        self.start=start
-    def move(self,angle): #only move within a set space to avoid damage
-        current=self.servo.angle
-        if current+angle>=self.min and current+angle<=self.max:
-            self.servo.angle=current+angle
-    def startPos(self):
-        self.servo.angle=self.start
+
 """
 define needed functions
 """
+def readDist():
+    return sonar.read("mm",5)
 def readAcc():
     d=sensor.get_accel_data() #read the accelerometer
     return float(d["x"]),float(d["y"]),float(d["z"])
@@ -147,6 +150,7 @@ def fitness(startDist):
         penalty=abs(max(-9.5,x)-min(-9.5,x))
     if not withinBoundary(y,0.2,0.8,1):
         penalty=abs(max(0.2,x)-min(0.2,x))
+    
     if withinBoundary(x,-9.5,2,2) and withinBoundary(y,0.2,2,2): #if in a near position
         if startDist-distance>0 and startDist-distance+penalty>0:
             return startDist-distance+penalty
@@ -159,8 +163,6 @@ def mutation(gene, mean=0, std=0.1):
     gene[gene < -4] = -4
     return gene
 
-
-
 def output_step(servos,motorGenes): #move servos by given amounts
     for i,gene in enumerate(motorGenes):
         if gene==1:
@@ -169,7 +171,7 @@ def output_step(servos,motorGenes): #move servos by given amounts
             servos[i].move(-30) #move by -30 degrees
         
 prev_fitness = [0]
-fitnesses=[]
+fitnesses=[0]
 
 # Main loop performing Microbal GA
 for epoch in range(epochs):
@@ -178,38 +180,48 @@ for epoch in range(epochs):
         i.startPos()
     while isReady()==False: GPIO.output(buzzer,GPIO.HIGH) #wait for ready
     GPIO.output(buzzer,GPIO.LOW)
+    time.sleep(2)
     startDist=readDist() #get sensor reading
     
     n1=random.randint(0,19) #get random gene
     g1=gene_pop[n1]
+    g1=mutation(g1)
     positions=agent.set_genes(g1)
-    currentMotors=[servo[i].servo.angle for i in range(len(servos))] #set up current angles
+    currentMotors=[servos[i].servo.angle for i in range(len(servos))] #set up current angles
+    
     for i in range(20): #20 steps to get it right
-        positions=agent.get_action(currentMotors+list(readAcc())) #get random gene
-        currentMotors=[]
+        print(currentMotors)
+        positions=agent.get_action(np.array(currentMotors+list(readAcc()))) #get random gene
+        print(positions)
+        currentMotors=[servos[i].servo.angle for i in range(len(servos))] #set up current angles
         output_step(servos,positions) ######output steps
-        g1_fit = fitness(startDist)
+        time.sleep(0.3)
+        if not isReady(): break
+    g1_fit = fitness(startDist)
     
     for i in servos:
         i.startPos()
     while isReady()==False: GPIO.output(buzzer,GPIO.HIGH) #wait for ready
     GPIO.output(buzzer,GPIO.LOW)
-    
+    time.sleep(2)
     startDist=readDist() #get sensor reading
     
     n2=random.randint(0,19)
     g2=gene_pop[n2]
+    g2=mutation(g2)
     positions=agent.set_genes(g2)
-    currentMotors=[servo[i].servo.angle for i in range(len(servos))] #set up current angles
+    currentMotors=[servos[i].servo.angle for i in range(len(servos))] #set up current angles
 
     for i in range(20): #20 steps to get it right
-        positions=agent.get_action(currentMotors+list(readAcc())) #get random gene
-        currentMotors=[]
+        positions=agent.get_action(np.array(currentMotors+list(readAcc()))) #get random gene
+        currentMotors=[servos[i].servo.angle for i in range(len(servos))] #set up current angles
         output_step(servos,positions) ######output steps
-        g2_fit = fitness(startDist)
+        time.sleep(0.3)
+        if not isReady(): break
+    g2_fit = fitness(startDist)
     
-    if g1_fit>g2_fit: gt[n2]=gt[n1].copy() #copy over
-    else: gt[n1]=gt[n2].copy()
+    if g1_fit>g2_fit: gene_pop[n2]=copy.deepcopy(gene_pop[n1]) #copy over
+    else: gene_pop[n1]=copy.deepcopy(gene_pop[n2])
     
     fitnesses.append(max([g1_fit,g2_fit,max(fitnesses)])) #save best fitness out of two
 
