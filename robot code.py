@@ -1,17 +1,11 @@
 
-
 """
 GA will evolve a neural nework agent controlling a robotic Chassis to walk
-
-
 Overview
-
 a series of motor instructions encoded as m1,m2,m3,m4 with the current gyroscopic position
 and this will help predict the next step
-
 7 inputs, 4 outputs for a motor system of 4 motors
 inputs are from motor positions and x,y,z
-
 """
 
 #GA use libraries
@@ -138,22 +132,31 @@ def isReady():
     if withinBoundary(x,-9.5,2,2) and withinBoundary(y,0.2,2,2):
         return True
     return False
-def fitness(startDist):
+def getDiverseScore(positions):
+    #given all the positions predicted, reward those with many changes
+    counter=0
+    for i,pos in enumerate(positions[1:]):
+        for j in range(len(positions[0])):
+            if positions[i][j]!=pos[j]:
+                counter+=1
+    return counter
+def fitness(startDist,positions):
     #get the fitness of the bots current position
     distance=readDist()
+    diversityScore=getDiverseScore(positions) #gather a diversity of movement score
     x,y,z=readAcc()
     #get the distance score
     #get the gyro score
     #combine scores
     penalty=0
-    if not withinBoundary(x,-9.5,0.5,0.5):
+    if not withinBoundary(x,-9.5,2,2):
         penalty=abs(max(-9.5,x)-min(-9.5,x))
-    if not withinBoundary(y,0.2,0.8,1):
+    if not withinBoundary(y,0.2,2,2):
         penalty=abs(max(0.2,x)-min(0.2,x))
     
     if withinBoundary(x,-9.5,2,2) and withinBoundary(y,0.2,2,2): #if in a near position
-        if startDist-distance>0 and startDist-distance+penalty>0:
-            return startDist-distance+penalty
+        if startDist-distance>0 and startDist-distance-penalty>0:
+            return (startDist-distance-penalty)+diversityScore
     return 0
 
 def mutation(gene, mean=0, std=0.1):
@@ -188,16 +191,15 @@ for epoch in range(epochs):
     g1=mutation(g1)
     positions=agent.set_genes(g1)
     currentMotors=[servos[i].servo.angle for i in range(len(servos))] #set up current angles
-    
+    gathered=[]
     for i in range(20): #20 steps to get it right
-        print(currentMotors)
         positions=agent.get_action(np.array(currentMotors+list(readAcc()))) #get random gene
-        print(positions)
+        gathered.append(positions.copy())
         currentMotors=[servos[i].servo.angle for i in range(len(servos))] #set up current angles
         output_step(servos,positions) ######output steps
         time.sleep(0.3)
         if not isReady(): break
-    g1_fit = fitness(startDist)
+    g1_fit = fitness(startDist,gathered)
     
     for i in servos:
         i.startPos()
@@ -211,14 +213,15 @@ for epoch in range(epochs):
     g2=mutation(g2)
     positions=agent.set_genes(g2)
     currentMotors=[servos[i].servo.angle for i in range(len(servos))] #set up current angles
-
+    gathered=[]
     for i in range(20): #20 steps to get it right
         positions=agent.get_action(np.array(currentMotors+list(readAcc()))) #get random gene
+        gathered.append(positions.copy())
         currentMotors=[servos[i].servo.angle for i in range(len(servos))] #set up current angles
         output_step(servos,positions) ######output steps
         time.sleep(0.3)
         if not isReady(): break
-    g2_fit = fitness(startDist)
+    g2_fit = fitness(startDist,gathered)
     
     if g1_fit>g2_fit: gene_pop[n2]=copy.deepcopy(gene_pop[n1]) #copy over
     else: gene_pop[n1]=copy.deepcopy(gene_pop[n2])
@@ -236,9 +239,6 @@ time.sleep(1)
 import datetime
 file=open("/home/pi/Documents/Walking/dataSheet Microbal"+str(datetime.datetime.now())+".txt","w")
 file.write(str(gt[t_ind].genotype))
-file.write(str(fittnesses))
+file.write(str(fitnesses))
 file.close()
 sonar.stop()
-
-
-        
