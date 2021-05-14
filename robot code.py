@@ -201,7 +201,7 @@ for epoch in range(epochs):
         positions=agent.get_action(np.array(currentMotors+list(readAcc()))) #get random gene
         gathered.append(positions.copy())
         currentMotors=[servos[i].servo.angle for i in range(len(servos))] #set up current angles
-        [behaviour[i].append(servos[i].servo.angle) for i in range(len(servo))]
+        [behaviour[i].append(servos[i].servo.angle) for i in range(len(servos))]
         output_step(servos,positions) ######output steps
         time.sleep(0.3)
         if not isReady(): break #break if not standing up
