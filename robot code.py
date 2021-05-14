@@ -179,6 +179,7 @@ def output_step(servos,motorGenes): #move servos by given amounts
         
 prev_fitness = [0]
 fitnesses=[0]
+fittest=[0,0]
 print("initial reading",readDist())
 # Main loop performing Microbal GA
 behaviour=[[0],[0],[0],[0]]
@@ -201,7 +202,8 @@ for epoch in range(epochs):
         positions=agent.get_action(np.array(currentMotors+list(readAcc()))) #get random gene
         gathered.append(positions.copy())
         currentMotors=[servos[i].servo.angle for i in range(len(servos))] #set up current angles
-        [behaviour[i].append(servos[i].servo.angle) for i in range(len(servos))]
+        if epoch==75 or epoch==149: #only save for two
+            [behaviour[i].append(servos[i].servo.angle) for i in range(len(servos))]
         output_step(servos,positions) ######output steps
         time.sleep(0.3)
         if not isReady(): break #break if not standing up
@@ -233,6 +235,10 @@ for epoch in range(epochs):
     else: gene_pop[n1]=copy.deepcopy(gene_pop[n2]) #copy over if not fitter
     
     fitnesses.append(max([g1_fit,g2_fit])) #save best fitness out of two
+    if max(g1_fit,g2,fit)>fittest[0]: #store the best fitness
+        fittest[0]=max(g1_fit,g2,fit)
+        if fittest[0]==g1_fit: fittest[1]=n1
+        else: fittest[1]=n2
     print(fitnesses)
 
 import datetime
