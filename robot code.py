@@ -88,7 +88,7 @@ agent = Agent(num_obs, 5,  num_actions)
 # Create our gene population
 gene_pop = []
 
-for i in range(20):
+for i in range(10): #vary from 10 to 20 depending on purpose of robot
   gene_pop.append(np.random.normal(0, 0.1, (agent.num_genes)))#create
 
 
@@ -180,6 +180,7 @@ def output_step(servos,motorGenes): #move servos by given amounts
 prev_fitness = [0]
 fitnesses=[0]
 fittest=[0,0]
+storedFav=-1
 print("initial reading",readDist())
 # Main loop performing Microbal GA
 behaviour=[[0],[0],[0],[0]]
@@ -193,6 +194,8 @@ for epoch in range(epochs):
     startDist=readDist() #get sensor reading
     
     n1=random.randint(0,19) #get random gene
+    if epoch==149:
+        n1=storedFav
     g1=copy.deepcopy(gene_pop[n1])
     g1=mutation(g1,std=0.2) #mutate this random gene
     positions=agent.set_genes(g1) #set the genes
@@ -203,6 +206,7 @@ for epoch in range(epochs):
         gathered.append(positions.copy())
         currentMotors=[servos[i].servo.angle for i in range(len(servos))] #set up current angles
         if epoch==75 or epoch==149: #only save for two
+            storedFav=fittest[1]
             [behaviour[i].append(servos[i].servo.angle) for i in range(len(servos))]
         output_step(servos,positions) ######output steps
         time.sleep(0.3)
