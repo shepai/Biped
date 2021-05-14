@@ -24,7 +24,7 @@ import time
 Hardware classes
 """
 class servoMotor:
-    def __init__(self,servoObj,start,Min,Max):
+    def __init__(self,servoObj,start,Min,Max): #initialize with all values and constraints
         self.servo=servoObj
         self.min=Min
         self.max=Max
@@ -32,8 +32,8 @@ class servoMotor:
     def move(self,angle): #only move within a set space to avoid damage
         current=self.servo.angle
         if current+angle>=self.min and current+angle<=self.max:
-            self.servo.angle=current+angle
-    def startPos(self):
+            self.servo.angle=current+angle #increase by only if within constraint
+    def startPos(self): #set servo to the start position (which will be standing)
         self.servo.angle=self.start
 
 class Agent:
@@ -81,7 +81,7 @@ define needed variables
 """
 num_obs = 7 # depends on your environment
 num_actions = 4 # depends on your environment
-epochs, pop_size, mutation_std = 1000, 15, 0.01 #define data for training
+epochs, pop_size, mutation_std = 150, 15, 0.02 #define data for training
 #create out agent
 agent = Agent(num_obs, 5,  num_actions)
 
@@ -106,7 +106,7 @@ kit = ServoKit(channels=16)
 #lcd = lcddriver.lcd()
 GPIO.setup(23,GPIO.OUT) #buzzer on 23
 
-servos=[]
+servos=[] #attach all the servo motor objects
 servos.append(servoMotor(kit.servo[0],90,40,130))
 servos.append(servoMotor(kit.servo[1],130,20,10))
 servos.append(servoMotor(kit.servo[2],100,0,180))
@@ -117,28 +117,32 @@ servos.append(servoMotor(kit.servo[3],30,0,80))
 define needed functions
 """
 def readDist():
-    return sonar.read("mm",5)
+    return int(sonar.read("mm",15)) #read the distance from ultrasound range finder
 def readAcc():
-    d=sensor.get_accel_data() #read the accelerometer
-    return float(d["x"]),float(d["y"]),float(d["z"])
+     while True:
+        try:
+                d=sensor.get_accel_data() #read the accelerometer
+                return float(d["x"]),float(d["y"]),float(d["z"]) #return values from gryoscopic data
+        except:
+                pass #return nothing if not plugged in
 def withinBoundary(num,value,minus,plus): #whether or not a number is withi a value bounds
-    if num>=value-minus and num<=value+plus:
+    if num>=value-minus and num<=value+plus: #get boundaries
         return True
     return False
 
 def isReady():
     #check accelerometer values are within boundaries
     x,y,z=readAcc()#get gyroscope values
-    if withinBoundary(x,-9.5,2,2) and withinBoundary(y,0.2,2,2):
+    if withinBoundary(x,-9.5,2,2) and withinBoundary(y,0.2,2,2): #get within bounds of standing
         return True
     return False
 def getDiverseScore(positions):
     #given all the positions predicted, reward those with many changes
     counter=0
-    for i,pos in enumerate(positions[1:]):
-        for j in range(len(positions[0])):
+    for i,pos in enumerate(positions[1:]): #loop through positions
+        for j in range(len(positions[0])): #loop through each
             if positions[i][j]!=pos[j]:
-                counter+=1
+                counter+=1 #increase if different to last
     return counter
 def fitness(startDist,positions):
     #get the fitness of the bots current position
@@ -149,18 +153,18 @@ def fitness(startDist,positions):
     #get the gyro score
     #combine scores
     penalty=0
-    if not withinBoundary(x,-9.5,2,2):
+    if not withinBoundary(x,-9.5,2,2): #assign penalties for data not within boundary
         penalty=abs(max(-9.5,x)-min(-9.5,x))
     if not withinBoundary(y,0.2,2,2):
         penalty=abs(max(0.2,x)-min(0.2,x))
     
-    if withinBoundary(x,-9.5,2,2) and withinBoundary(y,0.2,2,2): #if in a near position
+    if isReady(): #if in a near position
         if startDist-distance>0 and startDist-distance-penalty>0:
             return (startDist-distance-penalty)+diversityScore
     return 0
 
 def mutation(gene, mean=0, std=0.1):
-    gene = gene + np.random.normal(mean, std, size=gene.shape)
+    gene = gene + np.random.normal(mean, std, size=gene.shape) #mutate the gene via normal 
     # constraint
     gene[gene > 4] = 4
     gene[gene < -4] = -4
@@ -175,8 +179,9 @@ def output_step(servos,motorGenes): #move servos by given amounts
         
 prev_fitness = [0]
 fitnesses=[0]
-
+print("initial reading",readDist())
 # Main loop performing Microbal GA
+behaviour=[[0],[0],[0],[0]]
 for epoch in range(epochs):
     print("Generation:",epoch)
     for i in servos:
@@ -187,31 +192,32 @@ for epoch in range(epochs):
     startDist=readDist() #get sensor reading
     
     n1=random.randint(0,19) #get random gene
-    g1=gene_pop[n1]
-    g1=mutation(g1)
-    positions=agent.set_genes(g1)
+    g1=copy.deepcopy(gene_pop[n1])
+    g1=mutation(g1,std=0.2) #mutate this random gene
+    positions=agent.set_genes(g1) #set the genes
     currentMotors=[servos[i].servo.angle for i in range(len(servos))] #set up current angles
     gathered=[]
     for i in range(20): #20 steps to get it right
         positions=agent.get_action(np.array(currentMotors+list(readAcc()))) #get random gene
         gathered.append(positions.copy())
         currentMotors=[servos[i].servo.angle for i in range(len(servos))] #set up current angles
+        [behaviour[i].append(servos[i].servo.angle) for i in range(len(servo))]
         output_step(servos,positions) ######output steps
         time.sleep(0.3)
-        if not isReady(): break
-    g1_fit = fitness(startDist,gathered)
+        if not isReady(): break #break if not standing up
+    g1_fit = fitness(startDist,gathered) #gather the fitness
     
-    for i in servos:
+    for i in servos: #reset to start positions
         i.startPos()
     while isReady()==False: GPIO.output(buzzer,GPIO.HIGH) #wait for ready
     GPIO.output(buzzer,GPIO.LOW)
     time.sleep(2)
     startDist=readDist() #get sensor reading
     
-    n2=random.randint(0,19)
-    g2=gene_pop[n2]
-    g2=mutation(g2)
-    positions=agent.set_genes(g2)
+    n2=random.randint(0,19) #select a random gene
+    g2=copy.deepcopy(gene_pop[n2])
+    g2=mutation(g2,std=0.2) #mutate this random gene
+    positions=agent.set_genes(g2) #set the genes
     currentMotors=[servos[i].servo.angle for i in range(len(servos))] #set up current angles
     gathered=[]
     for i in range(20): #20 steps to get it right
@@ -223,22 +229,30 @@ for epoch in range(epochs):
         if not isReady(): break
     g2_fit = fitness(startDist,gathered)
     
-    if g1_fit>g2_fit: gene_pop[n2]=copy.deepcopy(gene_pop[n1]) #copy over
-    else: gene_pop[n1]=copy.deepcopy(gene_pop[n2])
+    if g1_fit>g2_fit: gene_pop[n2]=copy.deepcopy(gene_pop[n1]) #copy over if fitter
+    else: gene_pop[n1]=copy.deepcopy(gene_pop[n2]) #copy over if not fitter
     
-    fitnesses.append(max([g1_fit,g2_fit,max(fitnesses)])) #save best fitness out of two
+    fitnesses.append(max([g1_fit,g2_fit])) #save best fitness out of two
+    print(fitnesses)
 
-GPIO.output(buzzer,GPIO.HIGH) 
-time.sleep(2)
-GPIO.output(buzzer,GPIO.LOW)
-time.sleep(1)
-GPIO.output(buzzer,GPIO.HIGH) 
-time.sleep(2)
-GPIO.output(buzzer,GPIO.LOW)
-time.sleep(1)
 import datetime
-file=open("/home/pi/Documents/Walking/dataSheet Microbal"+str(datetime.datetime.now())+".txt","w")
-file.write(str(gt[t_ind].genotype))
+file=open("/home/pi/Documents/Walking/dataSheet Microbal"+str(datetime.datetime.now()).replace(":","")+".txt","w") #save file
+#file.write(str(gt[t_ind].genotype))
 file.write(str(fitnesses))
 file.close()
-sonar.stop()
+
+file=open("/home/pi/Documents/Walking/dataSheet Behaviour"+str(datetime.datetime.now()).replace(":","")+".txt","w") #save file
+#file.write(str(gt[t_ind].genotype))
+file.write(str(behaviour))
+file.close()
+
+GPIO.output(buzzer,GPIO.HIGH)  #alert user that the program has finished with beeps
+time.sleep(2)
+GPIO.output(buzzer,GPIO.LOW)
+time.sleep(1)
+GPIO.output(buzzer,GPIO.HIGH) 
+time.sleep(2)
+GPIO.output(buzzer,GPIO.LOW)
+time.sleep(1)
+
+sonar.stop() #stop sonar
