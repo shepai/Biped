@@ -66,7 +66,7 @@ class Agent:
         x = torch.from_numpy(x).unsqueeze(0)
         x=torch.mm(x, self.weights.T) #first layer
         x =torch.mm(x,self.weights2.T) #second layer
-        return torch.mm(x,self.weights2.T) + self.bias #third layer
+        return torch.mm(x,self.weights3.T) + self.bias #third layer
         
 
     def get_action(self, x):
@@ -245,8 +245,8 @@ for epoch in range(epochs):
     else: gene_pop[n1]=copy.deepcopy(gene_pop[n2]) #copy over if not fitter
     
     fitnesses.append(max([g1_fit,g2_fit])) #save best fitness out of two
-    if max(g1_fit,g2,fit)>fittest[0]: #store the best fitness
-        fittest[0]=max(g1_fit,g2,fit)
+    if max(g1_fit,g2_fit)>fittest[0]: #store the best fitness
+        fittest[0]=max(g1_fit,g2_fit)
         if fittest[0]==g1_fit: fittest[1]=n1
         else: fittest[1]=n2
     print(fitnesses)
