@@ -51,7 +51,7 @@ class Agent:
     def set_genes(self, gene):
         weight_idxs = self.num_input * self.num_hidden #size of weights to hidden
         weights2_idxs = self.num_hidden * self.num_hidden2 + weight_idxs #size and position
-        weights3_idxs = self.num_hidden * self.num_output + weights2_idxs + weight_idxs #size and position
+        weights3_idxs = self.num_hidden2 * self.num_output + weights2_idxs + #weight_idxs #size and position
         bias_idxs = weight_idxs + weights2_idxs + self.num_output #sizes of biases
         w = gene[0 : weight_idxs].reshape(self.num_hidden, self.num_input)   #merge genes
         w2 = gene[weight_idxs : weights2_idxs].reshape(self.num_hidden2, self.num_hidden)   #merge genes
@@ -199,7 +199,7 @@ for epoch in range(epochs):
     time.sleep(2)
     startDist=readDist() #get sensor reading
     
-    n1=random.randint(0,19) #get random gene
+    n1=random.randint(0,len(gene_pop)-1) #get random gene
     if epoch==149:
         n1=storedFav
     g1=copy.deepcopy(gene_pop[n1])
@@ -226,7 +226,7 @@ for epoch in range(epochs):
     time.sleep(2)
     startDist=readDist() #get sensor reading
     
-    n2=random.randint(0,19) #select a random gene
+    n2=random.randint(0,len(gene_pop)-1) #select a random gene
     g2=copy.deepcopy(gene_pop[n2])
     g2=mutation(g2,std=0.2) #mutate this random gene
     positions=agent.set_genes(g2) #set the genes
