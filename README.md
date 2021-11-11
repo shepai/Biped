@@ -1,2 +1,7 @@
 # Biped
-Projects for biped robotics
+Projects for biped and servo robotics
+
+Most algorithms here are evolutionary strategies
+
+
+
