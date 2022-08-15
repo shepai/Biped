@@ -18,9 +18,10 @@ Where a 1 moves a motor forward by x-degrees, and a -1 moves it back by x-degree
 ```
 genotype=[[0,0,0,0],[10,30,0,-1]]
 ```
+The above would move motor 1 by 10 degrees, motor 2 by 30 degrees, motor 3 stays steady, and motor 4 moves backwards 1 degree. 
 
 # GA optimization for walking
-
+The genetic algorithm task can be used to generate the weights and biases of a neural network. This can be formed using random gaussian noise. Mutation is enforced by adding more random gaussian noise on top of the genotype. 
 
 # Essential Reading
 https://towardsdatascience.com/evolving-a-robot-to-walk-using-python-83417ca3df2a
