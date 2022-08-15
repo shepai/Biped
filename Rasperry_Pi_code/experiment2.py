@@ -1,6 +1,6 @@
 """
 Genetic algorithm experiment
-By Dexter R C Shepherd,aged 19
+By Dexter R Shepherd,aged 19
 
 This uses a genetic algorithm to move a biped chassis of selected size. It should optimize its walk by using
 an mpu6050 sensor and ultrasonic range finder.
@@ -21,7 +21,7 @@ from Bluetin_Echo import Echo
 import RPi.GPIO as GPIO
 
 GPIO.setmode(GPIO.BCM)
-NumServos=4
+NumServos=8
 GPIO.setwarnings(False)
 buzzer=23
 
@@ -75,12 +75,9 @@ class Genotype:
                 seq[n]=choice
                 new[i]=seq.copy()
         return new
-    def setNew(self,geno,index=-1): #set the new genotype as the parameter
-        if index>=0:
-            self.genotype[0:index]=geno[0:index]
-        else:
-            self.genotype=geno.copy()
-        
+    def setNew(self,geno): #set the new genotype as the parameter
+        self.genotype=geno.copy()
+
 def readGyro():
     return sensor.get_accel_data() #read the gyroscope
 def readAcc():
@@ -94,7 +91,7 @@ def withinBoundary(num,value,minus,plus): #whether or not a number is withi a va
 def isReady():
     #check accelerometer values are within boundaries
     x,y,z=readAcc()#get gyroscope values
-    if withinBoundary(x,-9.5,2,2) and withinBoundary(y,0.2,2,2):
+    if withinBoundary(x,-9.5,0.5,0.5) and withinBoundary(y,0.2,0.8,1):
         return True
     return False
 def fitness(startDist):
@@ -119,13 +116,17 @@ def readDist(): #get the distance of the bot
 ##################
 #set up everything else
 servos=[]
-servos.append(servoMotor(kit.servo[0],90,40,130))
-servos.append(servoMotor(kit.servo[1],130,20,10))
+servos.append(servoMotor(kit.servo[0],90,60,180))
+servos.append(servoMotor(kit.servo[1],0,0,180))
 servos.append(servoMotor(kit.servo[2],100,0,180))
-servos.append(servoMotor(kit.servo[3],30,0,80))
+servos.append(servoMotor(kit.servo[3],130,0,180))
+servos.append(servoMotor(kit.servo[4],90,0,130))
+servos.append(servoMotor(kit.servo[5],100,0,180))
+servos.append(servoMotor(kit.servo[6],180,0,180))
+servos.append(servoMotor(kit.servo[7],90,0,180))
 
 
-gt=Genotype(size=15,no_of_inputs=NumServos,options=[0,0,30,-30,0])
+gt=Genotype(size=30,no_of_inputs=NumServos,options=[0,0,20,-20,0,0,0,0])
 
 fittnesses=[]
 ##################
@@ -144,30 +145,20 @@ for gen in range(Generations):
         i.startPos()
     while isReady()==False: GPIO.output(buzzer,GPIO.HIGH) #wait for ready
     GPIO.output(buzzer,GPIO.LOW)
-    time.sleep(2)
     startDist=readDist() #get sensor reading
     #lcd.lcd_display_string("Generation "+str(gen+1), 3)
     current=gt.mutate(rate=0.2)
     #perform genotype
-    topInd=-1
-    bestInBatch=0
-    for j,task in enumerate(current):
+    for task in current:
         for i,ang in enumerate(task):
             servos[i].move(ang)
         time.sleep(0.5)
-        if isReady():
-            topInd=j
-            bestInBatch=fitness(startDist)
-        else:
-            break
     fit=fitness(startDist)
     fittnesses.append(fit)
     if fit>best:
         gt.setNew(current)
         best=fit
-    elif bestInBatch>best: #store where it was good up to the point
-        gt.setNew(current,index=topInd)
-        
+
 #################
 #Save information
 

@@ -1,6 +1,6 @@
 """
 Genetic algorithm experiment
-By Dexter R C Shepherd,aged 19
+By Dexter R Shepherd,aged 19
 
 This uses a genetic algorithm to move a biped chassis of selected size. It should optimize its walk by using
 an mpu6050 sensor and ultrasonic range finder.
@@ -19,9 +19,10 @@ from adafruit_servokit import ServoKit
 from mpu6050 import mpu6050 as MPU
 from Bluetin_Echo import Echo
 import RPi.GPIO as GPIO
+import copy
 
 GPIO.setmode(GPIO.BCM)
-NumServos=8
+NumServos=4
 GPIO.setwarnings(False)
 buzzer=23
 
@@ -73,11 +74,13 @@ class Genotype:
                 while choice==seq[n]:  choice=random.choice(self.options) #get unique
                 #reform in order
                 seq[n]=choice
-                new[i]=seq.copy()
+                new[i]=copy.deepcopy(seq)
         return new
-    def setNew(self,geno): #set the new genotype as the parameter
-        self.genotype=geno.copy()
-        
+    def setNew(self,geno,index=-1): #set the new genotype as the parameter
+        if index>=0:
+            self.genotype[0:index]=copy.deepcopy(geno[0:index])
+        else:
+            self.genotype=copy.deepcopy(geno)
 def readGyro():
     return sensor.get_accel_data() #read the gyroscope
 def readAcc():
@@ -91,7 +94,7 @@ def withinBoundary(num,value,minus,plus): #whether or not a number is withi a va
 def isReady():
     #check accelerometer values are within boundaries
     x,y,z=readAcc()#get gyroscope values
-    if withinBoundary(x,-9.5,0.5,0.5) and withinBoundary(y,0.2,0.8,1):
+    if withinBoundary(x,-9.5,2,2) and withinBoundary(y,0.2,2,2):
         return True
     return False
 def fitness(startDist):
@@ -116,54 +119,92 @@ def readDist(): #get the distance of the bot
 ##################
 #set up everything else
 servos=[]
-servos.append(servoMotor(kit.servo[0],90,60,180))
-servos.append(servoMotor(kit.servo[1],0,0,180))
+servos.append(servoMotor(kit.servo[0],90,40,130))
+servos.append(servoMotor(kit.servo[1],130,20,10))
 servos.append(servoMotor(kit.servo[2],100,0,180))
-servos.append(servoMotor(kit.servo[3],130,0,180))
-servos.append(servoMotor(kit.servo[4],90,0,130))
-servos.append(servoMotor(kit.servo[5],100,0,180))
-servos.append(servoMotor(kit.servo[6],180,0,180))
-servos.append(servoMotor(kit.servo[7],90,0,180))
+servos.append(servoMotor(kit.servo[3],30,0,80))
 
+gt=[Genotype(size=30,no_of_inputs=NumServos,options=[0,0,20,-20,0,0,0,0]) for i in range(30)]
 
-gt=Genotype(size=30,no_of_inputs=NumServos,options=[0,0,20,-20,0,0,0,0])
 
 fittnesses=[]
 ##################
 #Begin algorithm
-"""
-lcd.lcd_display_string("[][][][]    [][][][]", 1)
-lcd.lcd_display_string("[][][][]    [][][][]", 2)
-lcd.lcd_display_string("", 3)
-lcd.lcd_display_string("shepai.github.io", 4)
-"""
-Generations=50
+
+Generations=200
+top=0
 best=0
+t_ind=0
 for gen in range(Generations):
-    #lcd.lcd_display_string("", 3)
+    print("Generation",gen+1)
     for i in servos:
         i.startPos()
     while isReady()==False: GPIO.output(buzzer,GPIO.HIGH) #wait for ready
     GPIO.output(buzzer,GPIO.LOW)
     startDist=readDist() #get sensor reading
-    #lcd.lcd_display_string("Generation "+str(gen+1), 3)
-    current=gt.mutate(rate=0.2)
-    #perform genotype
-    for task in current:
+    n1=random.randint(0,29)
+    current1=gt[n1].mutate(rate=0.2)
+    for j,task in enumerate(current1):
         for i,ang in enumerate(task):
             servos[i].move(ang)
-        time.sleep(0.5)
-    fit=fitness(startDist)
-    fittnesses.append(fit)
-    if fit>best:
-        gt.setNew(current)
-        best=fit
-        
+        time.sleep(0.2)
+        if isReady():
+            topInd=j
+            bestInBatch=fitness(startDist)
+        else:
+            break
+    fit1=fitness(startDist)
+
+    for i in servos:
+        i.startPos()
+    while isReady()==False: GPIO.output(buzzer,GPIO.HIGH) #wait for ready
+    GPIO.output(buzzer,GPIO.LOW)
+    startDist=readDist() #get sensor reading
+    n2=random.randint(0,29)
+    current2=gt[n2].mutate(rate=0.2)
+    for j,task in enumerate(current2):
+        for i,ang in enumerate(task):
+            servos[i].move(ang)
+        time.sleep(0.2)
+        if isReady():
+            topInd=j
+            bestInBatch=fitness(startDist)
+        else:
+            break
+    fit2=fitness(startDist)
+    print(max(fit1,fit2))
+    fittnesses.append(max(fit1,fit2))
+    t=max(fit1,fit2)
+    if t>top:
+        top=t
+    if fit1>fit2:
+        gt[n2].setNew(gt[n1])
+        if t>=top: t_ind=n1
+    elif fit2>fit1:
+        gt[n1].setNew(gt[n2])
+        if t>=top: t_ind=n2
+
 #################
 #Save information
-
-file=open("dataSheet ","w")
-file.write(str(gt.genotype))
+GPIO.output(buzzer,GPIO.HIGH)
+time.sleep(2)
+GPIO.output(buzzer,GPIO.LOW)
+time.sleep(1)
+GPIO.output(buzzer,GPIO.HIGH)
+time.sleep(2)
+GPIO.output(buzzer,GPIO.LOW)
+time.sleep(1)
+file=open("/home/pi/Documents/Walking/dataSheet Microbal.txt","w")
+file.write(str(gt[t_ind].genotype))
 file.write(str(fittnesses))
 file.close()
 sonar.stop()
+
+while True:
+    time.sleep(1)
+    for i in servos:
+        i.startPos()
+    for j,task in enumerate(gt[t_ind].genotype):
+        for i,ang in enumerate(task):
+            servos[i].move(ang)
+        time.sleep(0.2)
