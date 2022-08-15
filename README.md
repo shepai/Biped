@@ -5,7 +5,7 @@ Bipedal walking is a complex task to perform, there are all sorts of problems su
 
 Genetic algorithms (GA) allow systems to adapt randomly to find solutions. This minimizes the time that the developer needs to spend creating a solution. Some tasks are too complicated or time consuming for a developer to code a solution. Tasks such as walking require balance and correct movement all in concurrence with one another. Using a GA is a known approach to satisfying a solution while considering both constraints. An issue arises where these
 solutions have an enormous search space and can be impractical for solving a solution quickly . Research on bipedal genetic algorithms typically takes more
-generations to arrive at a candidate solution the more motors there are. 
+generations to arrive at a candidate solution the more motors there are.
 This is an interesting topic due to the significant part physical robots will one day have in society. We think very little about the complex movements we perform everyday. Being able to master optimization for robotics will help get to this stage. In this experiment we will see how key to the performance of an
 algorithm mutation rate is.
 
@@ -14,17 +14,15 @@ Using a Genetic algorithm we are able to encode motor positons in a series of st
 ```
 genotype=[[0,0,0,0],[1,0,0,-1]]
 ```
-Where a 1 moves a motor forward by x-degrees, and a -1 moves it back by x-degrees. Each index in the outer array represents steps , and the inside arrays represent each motor. [step1, step2, step3] and [motor1, motor2, motor3, motor4]. The previous example would not move in the first step, and then move motor 1 and motor 4 in opposite directions. This could also be set explicitly as randomized degrees movement: 
+Where a 1 moves a motor forward by x-degrees, and a -1 moves it back by x-degrees. Each index in the outer array represents steps , and the inside arrays represent each motor. [step1, step2, step3] and [motor1, motor2, motor3, motor4]. The previous example would not move in the first step, and then move motor 1 and motor 4 in opposite directions. This could also be set explicitly as randomized degrees movement:
 ```
 genotype=[[0,0,0,0],[10,30,0,-1]]
 ```
-The above would move motor 1 by 10 degrees, motor 2 by 30 degrees, motor 3 stays steady, and motor 4 moves backwards 1 degree. 
+The above would move motor 1 by 10 degrees, motor 2 by 30 degrees, motor 3 stays steady, and motor 4 moves backwards 1 degree.
 
+Check out the [CircuitPython code](https://github.com/shepai/Biped/tree/main/CircuitPython) for this where we 3D printed a 4DOF chassis. 
 # GA optimization for walking
-The genetic algorithm task can be used to generate the weights and biases of a neural network. This can be formed using random gaussian noise. Mutation is enforced by adding more random gaussian noise on top of the genotype. 
+The genetic algorithm task can be used to generate the weights and biases of a neural network. This can be formed using random gaussian noise. Mutation is enforced by adding more random gaussian noise on top of the genotype.
 
 # Essential Reading
 https://towardsdatascience.com/evolving-a-robot-to-walk-using-python-83417ca3df2a
-
-
-
