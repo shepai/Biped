@@ -20,7 +20,10 @@ genotype=[[0,0,0,0],[10,30,0,-1]]
 ```
 The above would move motor 1 by 10 degrees, motor 2 by 30 degrees, motor 3 stays steady, and motor 4 moves backwards 1 degree.
 
-Check out the [CircuitPython code](https://github.com/shepai/Biped/tree/main/CircuitPython) for this where we 3D printed a 4DOF chassis. 
+Check out the [CircuitPython code](https://github.com/shepai/Biped/tree/main/CircuitPython) for this where we 3D printed a 4DOF chassis.
+
+<img src="https://raw.githubusercontent.com/shepai/Biped/main/Misc/robotBob.jpg" width="25%" >
+
 # GA optimization for walking
 The genetic algorithm task can be used to generate the weights and biases of a neural network. This can be formed using random gaussian noise. Mutation is enforced by adding more random gaussian noise on top of the genotype.
 
